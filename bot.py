@@ -73,18 +73,18 @@ def send_daily_fact(bot):
         logging.error(f"Помилка під час розсилки: {e}")
 
 # Команди
-    def subscribe(update: Update, context: CallbackContext):
-        chat_id = update.effective_chat.id
-        subscribers = load_subscribers()
+def subscribe(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    subscribers = load_subscribers()
 
-        if chat_id not in subscribers:
-            subscribers.append(chat_id)
-            save_subscribers(subscribers)
-            logging.info(f"Підписано користувача {chat_id}. Поточні підписники: {load_subscribers()}")
-            update.message.reply_text("Ви підписались на щоденну розсилку історичних фактів. 📜")
-        else:
-            update.message.reply_text("Ви вже підписані.")
-    
+    if chat_id not in subscribers:
+        subscribers.append(chat_id)
+        save_subscribers(subscribers)
+        logging.info(f"Підписано користувача {chat_id}. Поточні підписники: {load_subscribers()}")
+        update.message.reply_text("Ви підписались на щоденну розсилку історичних фактів. 📜")
+    else:
+        update.message.reply_text("Ви вже підписані.")
+
 def unsubscribe(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     subscribers = load_subscribers()
@@ -124,7 +124,7 @@ def main():
 
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("subscribe", subscribe))
+    dispatcher.add_handler(CommandHandler("subscribe", subscribe)) # Перевірте регістр тут
     dispatcher.add_handler(CommandHandler("unsubscribe", unsubscribe))
 
     # Планувальник
@@ -134,7 +134,7 @@ def main():
         send_daily_fact,
         'cron',
         hour=20,
-        minute=35,
+        minute=42,
         timezone=kyiv_tz,
         args=[updater.bot]
     )
