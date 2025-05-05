@@ -6,6 +6,7 @@ from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
+from flask import Flask, request
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -17,15 +18,18 @@ if not TOKEN:
     logging.error("Ошибка: Не найден BOT_TOKEN в переменных окружения")
     exit(1)
 
+# Получение порта из переменной окружения (для Render)
+PORT = int(os.environ.get('PORT', 5000))
+
 # Файл для хранения ID подписчиков
 SUBSCRIBERS_FILE = "subscribers.json"
 # Путь к папке с изображениями
 IMAGES_DIR = "images"
 
 # Проверка наличия папки с картинками
-if not os.path.exists(IMAGES_DIR) or not os.path.isdir(IMAGES_DIR):
-    logging.error(f"Ошибка: Директория {IMAGES_DIR} не существует")
-    exit(1)
+if not os.path.exists(IMAGES_DIR):
+    os.makedirs(IMAGES_DIR)
+    logging.warning(f"Создана директория {IMAGES_DIR}")
 
 # Загрузка списка подписчиков
 def load_subscribers():
@@ -81,7 +85,7 @@ def subscribe(update: Update, context: CallbackContext):
     if chat_id not in subscribers:
         subscribers.append(chat_id)
         save_subscribers(subscribers)
-        update.message.reply_text("Вы успешно подписались на ежедневные исторические факты! Факты будут приходить каждый день в 17:30.")
+        update.message.reply_text("Вы успешно подписались на ежедневные исторические факты! Факты будут приходить каждый день в 17:55.")
     else:
         update.message.reply_text("Вы уже подписаны на ежедневные исторические факты.")
 
@@ -115,6 +119,13 @@ def start(update: Update, context: CallbackContext):
     )
 
 def main():
+    # Создание Flask приложения для привязки к порту (требуется Render)
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def index():
+        return "Бот истории запущен!"
+    
     # Создание бота
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
@@ -125,31 +136,29 @@ def main():
     dispatcher.add_handler(CommandHandler("subscribe", subscribe))
     dispatcher.add_handler(CommandHandler("unsubscribe", unsubscribe))
     
-    # Запуск бота
-    updater.start_polling()
-    logging.info("Бот запущен и готов к работе.")
-    
     # Настройка планировщика с часовым поясом Киева
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     scheduler.add_job(
         send_daily_fact, 
         'cron', 
-        hour=17, 
-        minute=55, 
+        hour=19, 
+        minute=00, 
         timezone=kyiv_tz,
         args=[updater.bot]
     )
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 17:30 по киевскому времени.")
+    logging.info("Планировщик запущен. Факты будут отправляться в 19:00 по киевскому времени.")
     
-    # Ожидание прерывания для завершения
-    updater.idle()
+    # Запуск бота в режиме веб-хука для Render
+    # Этот метод позволяет боту работать без постоянного опроса API Telegram
+    updater.start_polling()
     
-    # Остановка планировщика при завершении
-    scheduler.shutdown()
+    # Запуск Flask приложения, чтобы привязаться к порту
+    # Это нужно для работы на Render
+    app.run(host='0.0.0.0', port=PORT)
 
 if __name__ == '__main__':
     main()

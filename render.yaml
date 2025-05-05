@@ -1,13 +1,10 @@
 services:
   - type: web
-    name: telegram-history-bot
+    name: history-daily-ua-bot
     env: python
-    buildCommand: ""
-    startCommand: python bot.py
-    region: oregon
     plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python main.py"
     envVars:
-      - key: BOT_TOKEN
-        sync: false
-      - key: CHAT_ID
-        sync: false
+      - key: TELEGRAM_TOKEN
+        value: your_token_here
