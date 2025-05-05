@@ -40,10 +40,11 @@ scheduler = BackgroundScheduler(timezone=timezone("Europe/Kyiv"))
 scheduler.add_job(send_daily_fact, 'cron', hour=9, timezone=pytz.timezone('Europe/Kyiv'))
 scheduler.start()
 
-print("Бот запущено. Натисни Ctrl+C для завершення.")
+print("✅ Бот запущено. Надсилаю тестове повідомлення...")
+send_daily_fact()  # ⬅️ Цей рядок одразу запускає надсилання
+scheduler.start()
 
 # Безкінечний цикл, щоб бот не завершився одразу
 import time
 while True:
     time.sleep(10)
-send_daily_fact()
