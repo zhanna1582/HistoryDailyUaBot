@@ -37,7 +37,7 @@ def send_daily_fact():
 
 # Створення планувальника з часовою зоною
 scheduler = BackgroundScheduler(timezone=timezone("Europe/Kyiv"))
-scheduler.add_job(send_daily_fact, 'cron', hour=9, timezone=pytz.timezone('Europe/Kyiv'))
+scheduler.add_job(send_daily_fact, 'cron', hour=17, minute=15, timezone=pytz.timezone('Europe/Kyiv'))
 scheduler.start()
 
 print("✅ Бот запущено. Надсилаю тестове повідомлення...")
