@@ -80,6 +80,7 @@ def subscribe(update: Update, context: CallbackContext):
     if chat_id not in subscribers:
         subscribers.append(chat_id)
         save_subscribers(subscribers)
+        logging.info(f"Підписано користувача {chat_id}. Поточні підписники: {load_subscribers()}")  # Ось цей рядок
         update.message.reply_text("Ви підписались на щоденну розсилку історичних фактів. 📜")
     else:
         update.message.reply_text("Ви вже підписані.")
@@ -133,12 +134,15 @@ def main():
         send_daily_fact,
         'cron',
         hour=20,
-        minute=10,
+        minute=30,
         timezone=kyiv_tz,
         args=[updater.bot]
     )
     scheduler.start()
     logging.info("Розсилка налаштована на 19:00 за Києвом.")
+
+    # Додано рядок для виведення запланованих завдань
+    logging.info(f"Заплановані завдання: {scheduler.get_jobs()}")
 
     #updater.start_polling()
     app.run(host='0.0.0.0', port=PORT, threaded=True)
