@@ -133,14 +133,14 @@ def main():
         send_daily_fact,
         'cron',
         hour=19,
-        minute=55,
+        minute=57,
         timezone=kyiv_tz,
         args=[updater.bot]
     )
     scheduler.start()
     logging.info("Розсилка налаштована на 19:00 за Києвом.")
 
-    updater.start_polling()
+    #updater.start_polling()
     app.run(host='0.0.0.0', port=PORT, threaded=True)
 
 if __name__ == '__main__':
