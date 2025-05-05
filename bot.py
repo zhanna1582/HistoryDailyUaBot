@@ -143,8 +143,8 @@ def main():
         send_daily_fact, 
         'cron', 
         hour=16, 
-        minute=30, 
-        timezone=kyiv_tz,
+        minute=45, 
+        timezone='UTC',
         args=[updater.bot]
     )
     
