@@ -8,7 +8,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 from flask import Flask, request
 import datetime
-import time
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -32,7 +31,7 @@ IMAGES_DIR = "images"
 if not os.path.exists(IMAGES_DIR):
     os.makedirs(IMAGES_DIR)
     logging.warning(f"Создана директория {IMAGES_DIR}")
-    # Создаем тестовое изображение если папка пуста
+    # Создаем тестовое изображение, если папка пуста
     with open(os.path.join(IMAGES_DIR, "test_image.txt"), "w") as f:
         f.write("Это тестовый файл, замените его реальными изображениями")
     logging.info("Создан тестовый файл в директории images")
@@ -92,7 +91,7 @@ def send_daily_fact(bot):
         
         if not subscribers:
             logging.warning("Нет подписчиков для отправки фактов.")
-            # Отправляем тестовое сообщение на дефолтный ID если он задан в переменных окружения
+            # Отправляем тестовое сообщение на дефолтный ID, если он задан в переменных окружения
             default_id = os.getenv("DEFAULT_CHAT_ID")
             if default_id:
                 try:
@@ -102,7 +101,7 @@ def send_daily_fact(bot):
                 except Exception as e:
                     logging.error(f"Ошибка при тестовой отправке: {e}")
             return
-            
+        
         successful = 0
         for chat_id in subscribers:
             try:
@@ -194,8 +193,9 @@ def main():
     def ping():
         return "Pong! Бот активен. Текущее время: " + datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y")
     
-    # Создание бота
-    updater = Updater(TOKEN)
+    # Создание бота и updater
+    bot = Bot(TOKEN)
+    updater = Updater(bot=bot, use_context=True)  # Use the explicit bot instance
     dispatcher = updater.dispatcher
     
     # Регистрация обработчиков команд
@@ -212,33 +212,41 @@ def main():
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
-    # Регистрируем задачу на 18:33
+    # Регистрируем задачу на 18:53
     scheduler.add_job(
-        send_daily_fact, 
-        'cron', 
-        hour=18, 
-        minute=33, 
+        send_daily_fact,
+        'cron',
+        hour=18,
+        minute=53,
         timezone=kyiv_tz,
-        args=[updater.bot]
+        args=[bot]  # Pass the bot instance to the job
     )
     
     # Добавляем дополнительную задачу для проверки активности каждые 15 минут
     def keep_alive():
-        logging.info("Проверка активности: Бот работает. Текущее время (UTC): " + 
+        logging.info("Проверка активности: Бот работает. Текущее время (UTC): " +
                      datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
     
     scheduler.add_job(keep_alive, 'interval', minutes=15)
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
+    logging.info("Планировщик запущен. Факты будут отправляться в 18:53 по киевскому времени.")
     
     # Проверяем текущее состояние
     subs = load_subscribers()
     logging.info(f"Загружены подписчики при запуске: {subs}")
     
-    # Запуск бота
-    updater.start_polling()
+    # Настройка вебхука для Render
+    webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
+    updater.bot.set_webhook(webhook_url)
+    
+    # Обработчик для вебхука Flask (Render отправляет сюда обновления)
+    @app.route("/webhook", methods=['POST'])
+    def webhook():
+        update = Update.de_json(request.get_json(force=True), bot=updater.bot)  # Pass bot to from_json
+        dispatcher.process_update(update)
+        return "ok", 200
     
     # Запуск Flask приложения, чтобы привязаться к порту
     app.run(host='0.0.0.0', port=PORT)
