@@ -61,7 +61,9 @@ def load_subscribers():
 def save_subscribers(subscribers):
     try:
         # Ensure the directory exists
-        os.makedirs(os.path.dirname(SUBSCRIBERS_FILE), exist_ok=True)
+        dir_name = os.path.dirname(SUBSCRIBERS_FILE)
+        if dir_name:  # Check if the directory name is not empty
+            os.makedirs(dir_name, exist_ok=True)
         with open(SUBSCRIBERS_FILE, 'w') as f:
             json.dump(subscribers, f)
         logging.info(f"Сохранены подписчики: {subscribers}")
@@ -220,12 +222,12 @@ def main():
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
-    # Регистрируем задачу на 19:16
+    # Регистрируем задачу на 18:33
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=19,
-        minute=16,  # Исправлено значение минуты
+        hour=18,
+        minute=5,  # Исправлено значение минуты
         timezone=kyiv_tz,
         args=[bot]  # Pass the bot instance to the job
     )
@@ -239,7 +241,7 @@ def main():
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 19:16 по киевскому времени.")
+    logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
     
     # Проверяем текущее состояние
     subs = load_subscribers()
