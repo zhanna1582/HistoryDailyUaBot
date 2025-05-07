@@ -2,7 +2,7 @@ import pytz
 import os
 import random
 import json
-import psycopg2  # Импортируем psycopg2
+import psycopg2
 from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -23,7 +23,7 @@ if not TOKEN:
 # Получение порта из переменной окружения (для Render)
 PORT = int(os.environ.get('PORT', 5000))
 
-# Файл для хранения ID подписчиков (больше не используется напрямую, но может использоваться для локальной разработки)
+# Файл для хранения ID подписчиков
 SUBSCRIBERS_FILE = "subscribers.json"
 # Путь к папке с изображениями
 IMAGES_DIR = "images"
@@ -247,59 +247,54 @@ def main():
         args=[bot]  # Передаем экземпляр бота в задачу
     )
     
-    # Регистрируем задачу на 20:00
+    # Регистрируем задачу на 20:33
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=20,  # 20:00
-        minute=43,
+        hour=20,  # 20:33
+        minute=46,
         timezone=kyiv_tz,
         args=[bot]  # Передаем экземпляр бота в задачу
-   
-# Добавляем дополнительную задачу для проверки активности каждые 15 минут
-def keep_alive():
-    logging.info("Проверка активности: Бот работает. Текущее время (UTC): " +
-                 datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
-
-scheduler.add_job(keep_alive, 'interval', minutes=15)
-
-# Запуск планировщика
-scheduler.start()
-logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
-
-# Проверяем текущее состояние
-subs = load_subscribers()
-logging.info(f"Загружены подписчики при запуске: {subs}")
-
-# Настройка вебхука для Render
-webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
-updater.bot.set_webhook(webhook_url)
-
-# Обработчик для вебхука Flask (Render отправляет сюда обновления)
-@app.route("/webhook", methods=['POST'])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot=updater.bot)  # Pass bot to from_json
-    dispatcher.process_update(update)
-    return "ok", 200
-
-# Запуск Flask приложения, чтобы привязаться к порту
-app.run(host='0.0.0.0', port=PORT)
+    )
+    
+    # Добавляем дополнительную задачу для проверки активности каждые 15 минут
+    def keep_alive():
+        logging.info("Проверка активности: Бот работает. Текущее время (UTC): " +
+                     datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
+    
+    scheduler.add_job(keep_alive, 'interval', minutes=15)
+    
+    # Запуск планировщика
+    scheduler.start()
+    logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
+    
+    # Проверяем текущее состояние
+    subs = load_subscribers()
+    logging.info(f"Загружены подписчики при запуске: {subs}")
+    
+    # Настройка вебхука для Render
+    webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
+    updater.bot.set_webhook(webhook_url)
+    
+    # Обработчик для вебхука Flask (Render отправляет сюда обновления)
+    @app.route("/webhook", methods=['POST'])
+    def webhook():
+        update = Update.de_json(request.get_json(force=True), bot=updater.bot)  # Pass bot to from_json
+        dispatcher.process_update(update)
+        return "ok", 200
+    
+    # Запуск Flask приложения, чтобы привязаться к порту
+    app.run(host='0.0.0.0', port=PORT)
 
 if __name__ == '__main__':
     # Создаем таблицу subscribers, если она не существует
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS subscribers (
-                chat_id BIGINT PRIMARY KEY
-            )
-        """)
+        cursor.execute("""CREATE TABLE IF NOT EXISTS subscribers (chat_id BIGINT PRIMARY KEY)""")
         conn.commit()
         cursor.close()
         conn.close()
     except Exception as e:
         logging.error(f"Error creating table: {e}")
-        # Potentially exit if table creation is essential
-        # exit(1)
     main()
