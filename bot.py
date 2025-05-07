@@ -242,7 +242,7 @@ def main():
         send_daily_fact,
         'cron',
         hour=19,
-        minute=45,  # Исправлено значение минуты
+        minute=52,  # Исправлено значение минуты
         timezone=kyiv_tz,
         args=[bot]  # Pass bot instance to the job
     )
@@ -278,14 +278,19 @@ def main():
 
 if __name__ == '__main__':
     # Создаем таблицу subscribers, если она не существует
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS subscribers (
-            chat_id BIGINT PRIMARY KEY
-        )
-    """)
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS subscribers (
+                chat_id BIGINT PRIMARY KEY
+            )
+        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        logging.error(f"Error creating table: {e}")
+        # Potentially exit if table creation is essential
+        # exit(1)
     main()
