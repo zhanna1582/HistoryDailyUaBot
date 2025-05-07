@@ -226,8 +226,8 @@ def main():
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=18,
-        minute=5,  # Исправлено значение минуты
+        hour=19,
+        minute=21,  # Исправлено значение минуты
         timezone=kyiv_tz,
         args=[bot]  # Pass the bot instance to the job
     )
