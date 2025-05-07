@@ -225,7 +225,7 @@ def main():
         send_daily_fact,
         'cron',
         hour=19,
-        minute=05,
+        minute=5,
         timezone=kyiv_tz,
         args=[bot]  # Pass the bot instance to the job
     )
