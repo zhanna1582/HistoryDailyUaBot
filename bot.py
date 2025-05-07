@@ -2,6 +2,7 @@ import pytz
 import os
 import random
 import json
+import psycopg2  # Импортируем psycopg2
 from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -22,7 +23,7 @@ if not TOKEN:
 # Получение порта из переменной окружения (для Render)
 PORT = int(os.environ.get('PORT', 5000))
 
-# Файл для хранения ID подписчиков
+# Файл для хранения ID подписчиков (больше не используется напрямую, но может использоваться для локальной разработки)
 SUBSCRIBERS_FILE = "subscribers.json"
 # Путь к папке с изображениями
 IMAGES_DIR = "images"
@@ -36,42 +37,53 @@ if not os.path.exists(IMAGES_DIR):
         f.write("Это тестовый файл, замените его реальными изображениями")
     logging.info("Создан тестовый файл в директории images")
 
+# Получение URL базы данных из переменной окружения
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    logging.error("Ошибка: Не найден DATABASE_URL в переменных окружения")
+    exit(1)
+
+def get_connection():
+    """Получает соединение с базой данных."""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    except Exception as e:
+        logging.error(f"Ошибка при подключении к базе данных: {e}")
+        raise
+
 # Загрузка списка подписчиков
 def load_subscribers():
+    """Загружает подписчиков из базы данных."""
     try:
-        if os.path.exists(SUBSCRIBERS_FILE):
-            with open(SUBSCRIBERS_FILE, 'r') as f:
-                try:
-                    data = json.load(f)  # Попытка загрузить JSON
-                    if isinstance(data, list):
-                        return data
-                    else:
-                        logging.warning(f"Файл {SUBSCRIBERS_FILE} содержал не список: {data}, возвращаю пустой список")
-                        return []
-                except json.JSONDecodeError:
-                    logging.warning(f"Файл {SUBSCRIBERS_FILE} поврежден, возвращаю пустой список")
-                    return []
-        else:
-            return []
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT chat_id FROM subscribers")
+        rows = cursor.fetchall()
+        subscribers = [row[0] for row in rows]
+        cursor.close()
+        conn.close()
+        logging.info(f"Загружены подписчики: {subscribers}")
+        return subscribers
     except Exception as e:
-        logging.error(f"Ошибка при загрузке подписчиков: {e}")
+        logging.error(f"Ошибка при загрузке подписчиков из базы данных: {e}")
         return []
 
 # Сохранение списка подписчиков
 def save_subscribers(subscribers):
+    """Сохраняет подписчиков в базу данных."""
     try:
-        # Ensure the directory exists
-        dir_name = os.path.dirname(SUBSCRIBERS_FILE)
-        if dir_name:  # Check if the directory name is not empty
-            os.makedirs(dir_name, exist_ok=True)
-        # Use a temporary file to ensure atomic write
-        temp_file = SUBSCRIBERS_FILE + ".tmp"
-        with open(temp_file, 'w') as f:
-            json.dump(subscribers, f)
-        os.rename(temp_file, SUBSCRIBERS_FILE)  # Atomic rename
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM subscribers")  # Очистить таблицу перед добавлением
+        for chat_id in subscribers:
+            cursor.execute("INSERT INTO subscribers (chat_id) VALUES (%s)", (chat_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
         logging.info(f"Сохранены подписчики: {subscribers}")
     except Exception as e:
-        logging.error(f"Ошибка при сохранении подписчиков: {e}")
+        logging.error(f"Ошибка при сохранении подписчиков в базу данных: {e}")
 
 # Функция для проверки наличия изображений
 def check_images():
@@ -230,7 +242,7 @@ def main():
         send_daily_fact,
         'cron',
         hour=19,
-        minute=29,  # Исправлено значение минуты
+        minute=45,  # Исправлено значение минуты
         timezone=kyiv_tz,
         args=[bot]  # Pass bot instance to the job
     )
@@ -265,4 +277,15 @@ def main():
     app.run(host='0.0.0.0', port=PORT)
 
 if __name__ == '__main__':
+    # Создаем таблицу subscribers, если она не существует
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS subscribers (
+            chat_id BIGINT PRIMARY KEY
+        )
+    """)
+    conn.commit()
+    cursor.close()
+    conn.close()
     main()
