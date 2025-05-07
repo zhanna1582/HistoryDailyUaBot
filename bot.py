@@ -41,12 +41,18 @@ def load_subscribers():
     try:
         if os.path.exists(SUBSCRIBERS_FILE):
             with open(SUBSCRIBERS_FILE, 'r') as f:
-                data = f.read().strip()
-                if data:
-                    return json.loads(data)
-                else:
+                try:
+                    data = json.load(f)  # Попытка загрузить JSON
+                    if isinstance(data, list):
+                        return data
+                    else:
+                        logging.warning(f"Файл {SUBSCRIBERS_FILE} содержал не список: {data}, возвращаю пустой список")
+                        return []
+                except json.JSONDecodeError:
+                    logging.warning(f"Файл {SUBSCRIBERS_FILE} поврежден, возвращаю пустой список")
                     return []
-        return []
+        else:
+            return []
     except Exception as e:
         logging.error(f"Ошибка при загрузке подписчиков: {e}")
         return []
@@ -54,6 +60,8 @@ def load_subscribers():
 # Сохранение списка подписчиков
 def save_subscribers(subscribers):
     try:
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(SUBSCRIBERS_FILE), exist_ok=True)
         with open(SUBSCRIBERS_FILE, 'w') as f:
             json.dump(subscribers, f)
         logging.info(f"Сохранены подписчики: {subscribers}")
@@ -212,12 +220,12 @@ def main():
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
-    # Регистрируем задачу на 18:53
+    # Регистрируем задачу на 19:05
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=18,
-        minute=53,
+        hour=19,
+        minute=05,
         timezone=kyiv_tz,
         args=[bot]  # Pass the bot instance to the job
     )
@@ -231,7 +239,7 @@ def main():
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 18:53 по киевскому времени.")
+    logging.info("Планировщик запущен. Факты будут отправляться в 19:05 по киевскому времени.")
     
     # Проверяем текущее состояние
     subs = load_subscribers()
