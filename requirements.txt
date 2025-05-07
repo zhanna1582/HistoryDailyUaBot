@@ -2,3 +2,4 @@ python-telegram-bot==13.7
 apscheduler
 pytz
 flask
+psycopg2-binary
