@@ -64,8 +64,11 @@ def save_subscribers(subscribers):
         dir_name = os.path.dirname(SUBSCRIBERS_FILE)
         if dir_name:  # Check if the directory name is not empty
             os.makedirs(dir_name, exist_ok=True)
-        with open(SUBSCRIBERS_FILE, 'w') as f:
+        # Use a temporary file to ensure atomic write
+        temp_file = SUBSCRIBERS_FILE + ".tmp"
+        with open(temp_file, 'w') as f:
             json.dump(subscribers, f)
+        os.rename(temp_file, SUBSCRIBERS_FILE)  # Atomic rename
         logging.info(f"Сохранены подписчики: {subscribers}")
     except Exception as e:
         logging.error(f"Ошибка при сохранении подписчиков: {e}")
@@ -227,9 +230,9 @@ def main():
         send_daily_fact,
         'cron',
         hour=19,
-        minute=21,  # Исправлено значение минуты
+        minute=29,  # Исправлено значение минуты
         timezone=kyiv_tz,
-        args=[bot]  # Pass the bot instance to the job
+        args=[bot]  # Pass bot instance to the job
     )
     
     # Добавляем дополнительную задачу для проверки активности каждые 15 минут
