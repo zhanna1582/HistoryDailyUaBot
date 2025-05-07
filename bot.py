@@ -238,53 +238,52 @@ def main():
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
     # Регистрируем задачу на 17:00
-scheduler.add_job(
-    send_daily_fact,
-    'cron',
-    hour=17,  # 17:00
-    minute=0,
-    timezone=kyiv_tz,
-    args=[bot]  # Передаем экземпляр бота в задачу
-)
+    scheduler.add_job(
+        send_daily_fact,
+        'cron',
+        hour=17,  # 17:00
+        minute=0,
+        timezone=kyiv_tz,
+        args=[bot]  # Передаем экземпляр бота в задачу
+    )
+    
+    # Регистрируем задачу на 20:00
+    scheduler.add_job(
+        send_daily_fact,
+        'cron',
+        hour=20,  # 20:00
+        minute=43,
+        timezone=kyiv_tz,
+        args=[bot]  # Передаем экземпляр бота в задачу
+   
+# Добавляем дополнительную задачу для проверки активности каждые 15 минут
+def keep_alive():
+    logging.info("Проверка активности: Бот работает. Текущее время (UTC): " +
+                 datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
 
-# Регистрируем задачу на 20:00
-scheduler.add_job(
-    send_daily_fact,
-    'cron',
-    hour=20,  # 20:00
-    minute=33,
-    timezone=kyiv_tz,
-    args=[bot]  # Передаем экземпляр бота в задачу
-)
-    
-    # Добавляем дополнительную задачу для проверки активности каждые 15 минут
-    def keep_alive():
-        logging.info("Проверка активности: Бот работает. Текущее время (UTC): " +
-                     datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
-    
-    scheduler.add_job(keep_alive, 'interval', minutes=15)
-    
-    # Запуск планировщика
-    scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
-    
-    # Проверяем текущее состояние
-    subs = load_subscribers()
-    logging.info(f"Загружены подписчики при запуске: {subs}")
-    
-    # Настройка вебхука для Render
-    webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
-    updater.bot.set_webhook(webhook_url)
-    
-    # Обработчик для вебхука Flask (Render отправляет сюда обновления)
-    @app.route("/webhook", methods=['POST'])
-    def webhook():
-        update = Update.de_json(request.get_json(force=True), bot=updater.bot)  # Pass bot to from_json
-        dispatcher.process_update(update)
-        return "ok", 200
-    
-    # Запуск Flask приложения, чтобы привязаться к порту
-    app.run(host='0.0.0.0', port=PORT)
+scheduler.add_job(keep_alive, 'interval', minutes=15)
+
+# Запуск планировщика
+scheduler.start()
+logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
+
+# Проверяем текущее состояние
+subs = load_subscribers()
+logging.info(f"Загружены подписчики при запуске: {subs}")
+
+# Настройка вебхука для Render
+webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
+updater.bot.set_webhook(webhook_url)
+
+# Обработчик для вебхука Flask (Render отправляет сюда обновления)
+@app.route("/webhook", methods=['POST'])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot=updater.bot)  # Pass bot to from_json
+    dispatcher.process_update(update)
+    return "ok", 200
+
+# Запуск Flask приложения, чтобы привязаться к порту
+app.run(host='0.0.0.0', port=PORT)
 
 if __name__ == '__main__':
     # Создаем таблицу subscribers, если она не существует
