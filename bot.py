@@ -216,8 +216,8 @@ def main():
     scheduler.add_job(
         send_daily_fact, 
         'cron', 
-        hour=20, 
-        minute=50, 
+        hour=18, 
+        minute=10, 
         timezone=kyiv_tz,
         args=[updater.bot]
     )
