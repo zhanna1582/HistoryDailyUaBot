@@ -247,12 +247,12 @@ def main():
         args=[bot]  # Передаем экземпляр бота в задачу
     )
     
-    # Регистрируем задачу на 20:33
+    # Регистрируем задачу на 20:00
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=20,  # 20:33
-        minute=46,
+        hour=20,  # 20:00
+        minute=00,
         timezone=kyiv_tz,
         args=[bot]  # Передаем экземпляр бота в задачу
     )
