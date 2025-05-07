@@ -135,7 +135,7 @@ def status(update: Update, context: CallbackContext):
     subscribers = load_subscribers()
     
     if chat_id in subscribers:
-        update.message.reply_text("Вы подписаны на ежедневные исторические факты. Они приходят в 20:50 по киевскому времени.")
+        update.message.reply_text("Вы подписаны на ежедневные исторические факты. Они приходят в 18:23 по киевскому времени.")
     else:
         update.message.reply_text("Вы не подписаны на ежедневные исторические факты. Используйте /subscribe для подписки.")
 
@@ -212,12 +212,12 @@ def main():
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
-    # Регистрируем задачу на 18:10
+    # Регистрируем задачу на 18:23
     scheduler.add_job(
         send_daily_fact, 
         'cron', 
         hour=18, 
-        minute=10, 
+        minute=23, 
         timezone=kyiv_tz,
         args=[updater.bot]
     )
@@ -231,7 +231,7 @@ def main():
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 18:10 по киевскому времени.")
+    logging.info("Планировщик запущен. Факты будут отправляться в 18:23 по киевскому времени.")
     
     # Проверяем текущее состояние
     subs = load_subscribers()
