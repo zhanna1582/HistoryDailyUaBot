@@ -242,7 +242,7 @@ def main():
         send_daily_fact,
         'cron',
         hour=20,
-        minute=2,  # Исправлено значение минуты
+        minute=18,  # Исправлено значение минуты
         timezone=kyiv_tz,
         args=[bot]  # Pass bot instance to the job
     )
