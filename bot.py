@@ -237,15 +237,25 @@ def main():
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
-    # Регистрируем задачу на 18:33
-    scheduler.add_job(
-        send_daily_fact,
-        'cron',
-        hour=20,
-        minute=24,  # Исправлено значение минуты
-        timezone=kyiv_tz,
-        args=[bot]  # Pass bot instance to the job
-    )
+    # Регистрируем задачу на 17:00
+scheduler.add_job(
+    send_daily_fact,
+    'cron',
+    hour=17,  # 17:00
+    minute=0,
+    timezone=kyiv_tz,
+    args=[bot]  # Передаем экземпляр бота в задачу
+)
+
+# Регистрируем задачу на 20:00
+scheduler.add_job(
+    send_daily_fact,
+    'cron',
+    hour=20,  # 20:00
+    minute=33,
+    timezone=kyiv_tz,
+    args=[bot]  # Передаем экземпляр бота в задачу
+)
     
     # Добавляем дополнительную задачу для проверки активности каждые 15 минут
     def keep_alive():
