@@ -220,12 +220,12 @@ def main():
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
     
-    # Регистрируем задачу на 19:05
+    # Регистрируем задачу на 19:16
     scheduler.add_job(
         send_daily_fact,
         'cron',
         hour=19,
-        minute=5,
+        minute=16,  # Исправлено значение минуты
         timezone=kyiv_tz,
         args=[bot]  # Pass the bot instance to the job
     )
@@ -239,7 +239,7 @@ def main():
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 19:05 по киевскому времени.")
+    logging.info("Планировщик запущен. Факты будут отправляться в 19:16 по киевскому времени.")
     
     # Проверяем текущее состояние
     subs = load_subscribers()
