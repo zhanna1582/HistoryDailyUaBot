@@ -28,6 +28,12 @@ SUBSCRIBERS_FILE = "subscribers.json"
 # Путь к папке с изображениями
 IMAGES_DIR = "images"
 
+# Время для отправки сообщений (Киевское время)
+SEND_HOUR_1 = 17
+SEND_MINUTE_1 = 0
+SEND_HOUR_2 = 20
+SEND_MINUTE_2 = 0
+
 # Проверка и создание папки с картинками
 if not os.path.exists(IMAGES_DIR):
     os.makedirs(IMAGES_DIR)
@@ -151,7 +157,7 @@ def send_now(update: Update, context: CallbackContext):
         send_daily_fact(context.bot)
         update.message.reply_text("Отправка завершена!")
     else:
-        update.message.reply_text("Извините, эта команда доступна только администраторам бота.")
+        update.message.reply_text("Вибачте, ця команда доступна тільки адміністраторам бота.")
 
 # Команда для проверки статуса подписки
 def status(update: Update, context: CallbackContext):
@@ -159,9 +165,9 @@ def status(update: Update, context: CallbackContext):
     subscribers = load_subscribers()
     
     if chat_id in subscribers:
-        update.message.reply_text("Вы подписаны на ежедневные исторические факты. Они приходят в 18:23 по киевскому времени.")
+        update.message.reply_text(f"Ви підписані на щоденні історичні факти. Вони надходять о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
     else:
-        update.message.reply_text("Вы не подписаны на ежедневные исторические факты. Используйте /subscribe для подписки.")
+        update.message.reply_text("Ви не підписані на щоденні історичні факти. Використовуйте /subscribe для підписки.")
 
 # Команда для подписки
 def subscribe(update: Update, context: CallbackContext):
@@ -171,9 +177,9 @@ def subscribe(update: Update, context: CallbackContext):
     if chat_id not in subscribers:
         subscribers.append(chat_id)
         save_subscribers(subscribers)
-        update.message.reply_text("Вы успешно подписались на ежедневные исторические факты! Факты будут приходить каждый день в 20:50 по киевскому времени.")
+        update.message.reply_text(f"Ви успішно підписалися на щоденні історичні факти! Факти надходитимуть щодня о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
     else:
-        update.message.reply_text("Вы уже подписаны на ежедневные исторические факты.")
+        update.message.reply_text("Ви вже підписані на щоденні історичні факти.")
 
 # Команда для отписки
 def unsubscribe(update: Update, context: CallbackContext):
@@ -183,27 +189,27 @@ def unsubscribe(update: Update, context: CallbackContext):
     if chat_id in subscribers:
         subscribers.remove(chat_id)
         save_subscribers(subscribers)
-        update.message.reply_text("Вы отписались от ежедневных исторических фактов.")
+        update.message.reply_text("Ви відписалися від щоденних історичних фактів.")
     else:
-        update.message.reply_text("Вы не были подписаны на ежедневные исторические факты.")
+        update.message.reply_text("Ви не були підписані на щоденні історичні факти.")
 
 # Команда для получения помощи
 def help_command(update: Update, context: CallbackContext):
     update.message.reply_text(
-        "Доступные команды:\n"
-        "/start - Информация о боте\n"
-        "/subscribe - Подписаться на ежедневные исторические факты\n"
-        "/unsubscribe - Отписаться от ежедневных исторических фактов\n"
-        "/status - Проверить статус подписки\n"
-        "/help - Показать это сообщение"
+        "Доступні команди:\n"
+        "/start - Інформація про бота\n"
+        "/subscribe - Підписатися на щоденні історичні факти\n"
+        "/unsubscribe - Відписатися від щоденних історичних фактів\n"
+        "/status - Перевірити статус підписки\n"
+        "/help - Показати це повідомлення"
     )
 
 # Команда для запуска бота
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(
-        "Привет! Я бот ежедневных исторических фактов.\n"
-        "Используйте /subscribe, чтобы подписаться на ежедневную рассылку исторических фактов. "
-        "Факты приходят в 20:50 по киевскому времени."
+        "Привіт! Я бот щоденних історичних фактів.\n"
+        "Використовуйте /subscribe, щоб підписатися на щоденну розсилку історичних фактів. "
+        f"Факти надходять о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом."
     )
 
 def main():
@@ -212,11 +218,11 @@ def main():
     
     @app.route('/')
     def index():
-        return "Бот истории запущен! Версия 1.0.1"
+        return "Бот історії запущено! Версія 1.1.0"
     
     @app.route('/ping')
     def ping():
-        return "Pong! Бот активен. Текущее время: " + datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y")
+        return "Pong! Бот активний. Поточний час: " + datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y")
     
     # Создание бота и updater
     bot = Bot(TOKEN)
@@ -241,40 +247,53 @@ def main():
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=17,  # 17:00
-        minute=0,
+        hour=SEND_HOUR_1,
+        minute=SEND_MINUTE_1,
         timezone=kyiv_tz,
-        args=[bot]  # Передаем экземпляр бота в задачу
+        args=[bot],  # Передаем экземпляр бота в задачу
+        id='morning_fact'
     )
     
     # Регистрируем задачу на 20:00
     scheduler.add_job(
         send_daily_fact,
         'cron',
-        hour=20,  # 20:00
-        minute=00,
+        hour=SEND_HOUR_2,
+        minute=SEND_MINUTE_2,
         timezone=kyiv_tz,
-        args=[bot]  # Передаем экземпляр бота в задачу
+        args=[bot],  # Передаем экземпляр бота в задачу
+        id='evening_fact'
     )
     
     # Добавляем дополнительную задачу для проверки активности каждые 15 минут
     def keep_alive():
-        logging.info("Проверка активности: Бот работает. Текущее время (UTC): " +
+        logging.info("Перевірка активності: Бот працює. Поточний час (UTC): " +
                      datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
+        
+        # Додаємо перевірку наступного виконання запланованих завдань
+        jobs = scheduler.get_jobs()
+        for job in jobs:
+            if job.id in ['morning_fact', 'evening_fact']:
+                next_run = job.next_run_time
+                logging.info(f"Наступне виконання завдання {job.id}: {next_run}")
     
-    scheduler.add_job(keep_alive, 'interval', minutes=15)
+    scheduler.add_job(keep_alive, 'interval', minutes=15, id='keep_alive')
     
     # Запуск планировщика
     scheduler.start()
-    logging.info("Планировщик запущен. Факты будут отправляться в 18:33 по киевскому времени.")
+    logging.info(f"Планувальник запущено. Факти будуть надсилатися о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
     
     # Проверяем текущее состояние
     subs = load_subscribers()
-    logging.info(f"Загружены подписчики при запуске: {subs}")
+    logging.info(f"Завантажені підписники при запуску: {subs}")
     
     # Настройка вебхука для Render
-    webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
-    updater.bot.set_webhook(webhook_url)
+    if 'RENDER_EXTERNAL_HOSTNAME' in os.environ:
+        webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
+        updater.bot.set_webhook(webhook_url)
+        logging.info(f"Вебхук встановлено на {webhook_url}")
+    else:
+        logging.warning("RENDER_EXTERNAL_HOSTNAME не знайдено, вебхук не встановлено")
     
     # Обработчик для вебхука Flask (Render отправляет сюда обновления)
     @app.route("/webhook", methods=['POST'])
@@ -295,6 +314,7 @@ if __name__ == '__main__':
         conn.commit()
         cursor.close()
         conn.close()
+        logging.info("Таблиця підписників перевірена/створена")
     except Exception as e:
-        logging.error(f"Error creating table: {e}")
+        logging.error(f"Помилка створення таблиці: {e}")
     main()
