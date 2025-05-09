@@ -105,21 +105,21 @@ def check_images():
 def send_daily_fact(bot):
     try:
         logging.info("Начинаю отправку ежедневного факта...")
-        
+
         # Проверяем наличие изображений
         images = check_images()
         if not images:
             logging.error("Директория изображений пуста даже после попытки создать тестовый файл")
             return
-        
+
         image_file = random.choice(images)
         image_path = os.path.join(IMAGES_DIR, image_file)
         caption = f"Історичний факт дня 📜 - {datetime.datetime.now().strftime('%d.%m.%Y')}"
-        
+
         # Загружаем подписчиков
         subscribers = load_subscribers()
         logging.info(f"Загружены подписчики: {subscribers}")
-        
+
         if not subscribers:
             logging.warning("Нет подписчиков для отправки фактов.")
             # Отправляем тестовое сообщение на дефолтный ID, если он задан в переменных окружения
@@ -127,22 +127,24 @@ def send_daily_fact(bot):
             if default_id:
                 try:
                     with open(image_path, "rb") as photo:
-                        bot.send_photo(chat_id=default_id, photo=photo, caption=caption + " (тестовая отправка, нет подписчиков)")
+                        bot.send_photo(chat_id=default_id, photo=photo,
+                                        caption=caption + " (тестовая отправка, нет подписчиков)")
                     logging.info(f"Отправлено тестовое изображение на ID {default_id}")
                 except Exception as e:
                     logging.error(f"Ошибка при тестовой отправке: {e}")
             return
-        
+
         successful = 0
         for chat_id in subscribers:
             try:
+                logging.info(f"Отправка изображения пользователю {chat_id}: {image_file}")  # Добавлено логирование
                 with open(image_path, "rb") as photo:
                     bot.send_photo(chat_id=chat_id, photo=photo, caption=caption)
-                logging.info(f"Отправлено изображение пользователю {chat_id}: {image_file}")
+                logging.info(
+                    f"Успешно отправлено изображение пользователю {chat_id}: {image_file}")  # Добавлено логирование
                 successful += 1
             except Exception as e:
                 logging.error(f"Ошибка при отправке {chat_id}: {e}")
-        
         logging.info(f"Отправка завершена. Успешно: {successful}/{len(subscribers)}")
     except Exception as e:
         logging.error(f"Ошибка при отправке ежедневного факта: {e}")
@@ -151,7 +153,7 @@ def send_daily_fact(bot):
 def send_now(update: Update, context: CallbackContext):
     admin_ids = os.getenv("ADMIN_IDS", "").split(",")
     chat_id = str(update.effective_chat.id)
-    
+
     if chat_id in admin_ids:
         update.message.reply_text("Начинаю отправку исторического факта всем подписчикам...")
         send_daily_fact(context.bot)
@@ -163,21 +165,24 @@ def send_now(update: Update, context: CallbackContext):
 def status(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     subscribers = load_subscribers()
-    
+
     if chat_id in subscribers:
-        update.message.reply_text(f"Ви підписані на щоденні історичні факти. Вони надходять о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
+        update.message.reply_text(
+            f"Ви підписані на щоденні історичні факти. Вони надходять о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
     else:
-        update.message.reply_text("Ви не підписані на щоденні історичні факти. Використовуйте /subscribe для підписки.")
+        update.message.reply_text(
+            "Ви не підписані на щоденні історичні факти. Використовуйте /subscribe для підписки.")
 
 # Команда для подписки
 def subscribe(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     subscribers = load_subscribers()
-    
+
     if chat_id not in subscribers:
         subscribers.append(chat_id)
         save_subscribers(subscribers)
-        update.message.reply_text(f"Ви успішно підписалися на щоденні історичні факти! Факти надходитимуть щодня о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
+        update.message.reply_text(
+            f"Ви успішно підписалися на щоденні історичні факти! Факти надходитимуть щодня о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
     else:
         update.message.reply_text("Ви вже підписані на щоденні історичні факти.")
 
@@ -185,7 +190,7 @@ def subscribe(update: Update, context: CallbackContext):
 def unsubscribe(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     subscribers = load_subscribers()
-    
+
     if chat_id in subscribers:
         subscribers.remove(chat_id)
         save_subscribers(subscribers)
@@ -215,34 +220,34 @@ def start(update: Update, context: CallbackContext):
 def main():
     # Создание Flask приложения для привязки к порту (требуется Render)
     app = Flask(__name__)
-    
+
     @app.route('/')
     def index():
         return "Бот історії запущено! Версія 1.1.0"
-    
+
     @app.route('/ping')
     def ping():
         return "Pong! Бот активний. Поточний час: " + datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y")
-    
+
     # Создание бота и updater
     bot = Bot(TOKEN)
     updater = Updater(bot=bot, use_context=True)  # Use the explicit bot instance
     dispatcher = updater.dispatcher
-    
+
     # Регистрация обработчиков команд
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("subscribe", subscribe))
     dispatcher.add_handler(CommandHandler("unsubscribe", unsubscribe))
     dispatcher.add_handler(CommandHandler("status", status))
-    
+
     # Добавляем команду для ручной отправки
     dispatcher.add_handler(CommandHandler("sendnow", send_now))
-    
+
     # Настройка планировщика с часовым поясом Киева
     kyiv_tz = pytz.timezone('Europe/Kyiv')
     scheduler = BackgroundScheduler(timezone=kyiv_tz)
-    
+
     # Регистрируем задачу на 17:00
     scheduler.add_job(
         send_daily_fact,
@@ -253,7 +258,7 @@ def main():
         args=[bot],  # Передаем экземпляр бота в задачу
         id='morning_fact'
     )
-    
+
     # Регистрируем задачу на 20:00
     scheduler.add_job(
         send_daily_fact,
@@ -264,29 +269,30 @@ def main():
         args=[bot],  # Передаем экземпляр бота в задачу
         id='evening_fact'
     )
-    
+
     # Добавляем дополнительную задачу для проверки активности каждые 15 минут
     def keep_alive():
         logging.info("Перевірка активності: Бот працює. Поточний час (UTC): " +
                      datetime.datetime.utcnow().strftime("%H:%M:%S %d.%m.%Y"))
-        
+
         # Додаємо перевірку наступного виконання запланованих завдань
         jobs = scheduler.get_jobs()
         for job in jobs:
             if job.id in ['morning_fact', 'evening_fact']:
                 next_run = job.next_run_time
                 logging.info(f"Наступне виконання завдання {job.id}: {next_run}")
-    
+
     scheduler.add_job(keep_alive, 'interval', minutes=15, id='keep_alive')
-    
+
     # Запуск планировщика
     scheduler.start()
-    logging.info(f"Планувальник запущено. Факти будуть надсилатися о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
-    
+    logging.info(
+        f"Планувальник запущено. Факти будуть надсилатися о {SEND_HOUR_1}:00 та {SEND_HOUR_2}:00 за київським часом.")
+
     # Проверяем текущее состояние
     subs = load_subscribers()
     logging.info(f"Завантажені підписники при запуску: {subs}")
-    
+
     # Настройка вебхука для Render
     if 'RENDER_EXTERNAL_HOSTNAME' in os.environ:
         webhook_url = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}/webhook"
@@ -294,14 +300,15 @@ def main():
         logging.info(f"Вебхук встановлено на {webhook_url}")
     else:
         logging.warning("RENDER_EXTERNAL_HOSTNAME не знайдено, вебхук не встановлено")
-    
+
     # Обработчик для вебхука Flask (Render отправляет сюда обновления)
     @app.route("/webhook", methods=['POST'])
     def webhook():
-        update = Update.de_json(request.get_json(force=True), bot=updater.bot)  # Pass bot to from_json
+        update = Update.de_json(request.get_json(force=True),
+                                bot=updater.bot)  # Pass bot to from_json
         dispatcher.process_update(update)
         return "ok", 200
-    
+
     # Запуск Flask приложения, чтобы привязаться к порту
     app.run(host='0.0.0.0', port=PORT)
 
