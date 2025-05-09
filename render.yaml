@@ -1,10 +1,14 @@
 services:
   - type: web
-    name: history-daily-ua-bot
+    name: history-bot
     env: python
-    plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python main.py"
+    plan: free
     envVars:
-      - key: TELEGRAM_TOKEN
-        value: your_token_here
+      - key: BOT_TOKEN
+        value: ваш_токен
+      - key: DATABASE_URL
+        value: посилання_на_postgresql
+      - key: RENDER_EXTERNAL_HOSTNAME
+        generateValue: true
